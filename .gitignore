@@ -1,0 +1,15 @@
+data/2*/
+
+data/TestingData.csv
+data/TrainingData.csv
+data/ValidationData.csv
+
+data/TestSet/robot1/
+data/TestSet/robot2/
+data/TestSet/robot3/
+data/TestSet/TestingDivide/T*.csv
+data/TestSet/DRCL_Data_Test.txt
+data/TestSet/Reduced_DRCL_Data_Test.txt
+
+FCModulize/wandb/
+CNNModulize/result/
