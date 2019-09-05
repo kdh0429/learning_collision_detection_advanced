@@ -12,4 +12,4 @@ data/TestSet/DRCL_Data_Test.txt
 data/TestSet/Reduced_DRCL_Data_Test.txt
 
 FCModulize/wandb/
-CNNModulize/result/
+FCModulize/result/
