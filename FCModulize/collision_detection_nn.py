@@ -13,10 +13,21 @@ import argparse
 start_time = time.time()
 
 # Parameters
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 parser = argparse.ArgumentParser()
-parser.add_argument('--use_wandb', type=bool, default=True)
-parser.add_argument('--use_gpu', type=bool, default=False)
-parser.add_argument('--use_ee_acc_data', type=bool, default=False)
+parser.add_argument('--use_wandb', type=str2bool, default=True)
+parser.add_argument('--use_gpu', type=str2bool, default=False)
+parser.add_argument('--use_ee_acc_data', type=str2bool, default=False)
 parser.add_argument('--learning_rate', type=float, default=0.00002)
 parser.add_argument('--training_epoch', type=int, default=150)
 parser.add_argument('--batch_size', type=int, default=1000)
@@ -206,7 +217,7 @@ TrainData = tf.data.TFRecordDataset(["../data/TrainingData.tfrecord"])
 #TrainData = TrainData.shuffle(buffer_size=10*batch_size)
 TrainData = TrainData.map(parse_proto)
 TrainData = TrainData.batch(batch_size)
-#TrainData = TrainData.prefetch(buffer_size=1)
+#TrainData = TrainData.prefetch(buffer_size=100)
 Trainiterator = TrainData.make_initializable_iterator()
 train_batch_x, train_batch_y = Trainiterator.get_next()
 
@@ -244,18 +255,22 @@ for epoch in range(training_epochs):
     sess.run(Trainiterator.initializer)
     while True:
         try:
+            # read_start_time = time.time()
             x,y = sess.run([train_batch_x, train_batch_y])
+            # read_finish_time = time.time()
+            # print('read time : ', read_finish_time-read_start_time)
             if (x.shape[0]==batch_size):
                 accu, reg_c, cost,_ = m1.train(x, y, drop_out)
+                # print('train time : ', time.time()-read_finish_time)
                 train_batch_num = train_batch_num + 1
                 accu_train = ((train_batch_num-1)*accu_train + accu )/ train_batch_num
                 reg_train = ((train_batch_num-1)*reg_train + reg_c )/ train_batch_num
                 cost_train = ((train_batch_num-1)*cost_train + cost )/ train_batch_num
         except tf.errors.OutOfRangeError:
             break
-
     # Validation Evaluation
     accu_val, reg_val, cost_val = m1.get_mean_error_hypothesis(X_validation, Y_validation)
+    print('Validation Time : ', time.time()-tft)
 
     print('Epoch:', '%04d' % (epoch + 1))
     print('Train Accuracy =', '{:.9f}'.format(accu_train))
@@ -303,25 +318,3 @@ Y_Test = TestData[:,-num_output:]
 accu_test, reg_test, cost_test  = m1.get_mean_error_hypothesis(x, y)
 print('Test Accuracy: ', accu_test)
 print('Test Cost: ', cost_test)
-
-
-# Plot and Save to wandb
-epoch = np.arange(training_epochs)
-plt.subplot(2,1,1)
-plt.plot(epoch, train_acc, 'r', label='train')
-plt.plot(epoch, validation_acc, 'b', label='validation')
-plt.legend()
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.ylim(0,1)
-
-plt.subplot(2,1,2)
-plt.plot(epoch, train_cost, 'r', label='train')
-plt.plot(epoch, validation_cost, 'b', label='validation')
-plt.legend()
-plt.xlabel('Epoch')
-plt.ylabel('Cost')
-plt.ylim(0,1.5)
-
-if wandb_use == True:
-    wandb.log({"chart": wandb.Image(plt)})
