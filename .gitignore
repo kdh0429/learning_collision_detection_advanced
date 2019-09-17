@@ -4,6 +4,14 @@ data/TestingData.csv
 data/TrainingData.csv
 data/ValidationData.csv
 
+data/TrainingData.tfrecord
+
+data/ValidationSet/robot1/
+data/ValidationSet/robot2/
+data/ValidationSet/robot3/
+data/ValidationSet/DRCL_Data_Validation.txt
+data/ValidationSet/Reduced_DRCL_Data_Validation.txt
+
 data/TestSet/robot1/
 data/TestSet/robot2/
 data/TestSet/robot3/
