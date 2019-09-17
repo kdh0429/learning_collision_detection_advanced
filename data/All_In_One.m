@@ -2,11 +2,8 @@ clear all
 clc
 format long
 
-Tool_list = ["0_00kg", "2_01kg", "5_01kg"];
-Collision_Aggregate_Data = [];
-Free_Aggregate_Data = [];
+%% For normalization
 
-% For normalization
 MaxTrainingData = ...
 [25, ... % 시간 
 300,300,200,100,100,50, ... % 전류기반 토크 
@@ -39,6 +36,16 @@ MinTrainingData = ...
 0,0,0, ... % 스위치, JTS충돌, 전류충돌 
 -300,-300,-200,-100,-100,-50]; % JTS기반 토크 
 
+%% Training Set
+
+Tool_list = ["0_00kg", "2_01kg", "5_01kg"];
+Collision_Aggregate_Data = [];
+Free_Aggregate_Data = [];
+
+hz = 100;
+num_data_type = 10; % i, q, qdot, q_desired, qdot_desired, dyna, q_abs, qdot_abs, temperature, ee_acc
+num_input = 6*(num_data_type-1) + 3 * 1;
+num_time_step = 5;
 
 % 날짜별
 FolderName = dir;
@@ -74,10 +81,6 @@ for joint_data = 1:size(DataFolderList,2)
     cd ..;
 end
 
-hz = 100;
-num_data_type = 10; % i, q, qdot, q_desired, qdot_desired, dyna, q_abs, qdot_abs, temperature, ee_acc
-num_input = 6*(num_data_type-1) + 3 * 1;
-num_time_step = 5;
 
 CollisionProcessData= zeros(size(Collision_Aggregate_Data,1), num_input*num_time_step+2);
 CollisionProcessDataIdx = 1;
@@ -189,14 +192,55 @@ clear CollisionProcessData FreeProcessData;
 DataAllMix = DataAll(randperm(size(DataAll,1)),:);
 clear DataAll;
 
-TrainingData = DataAllMix(1:fix(size(DataAllMix,1)*0.9),:);
-ValidationData = DataAllMix(fix(size(DataAllMix,1)*0.9):fix(size(DataAllMix,1)*1.0),:);
+csvwrite('TrainingData.csv', DataAllMix);
 
-csvwrite('TrainingData.csv', TrainingData);
-csvwrite('ValidationData.csv', ValidationData);
+%% Validation Set
 
+cd ValidationSet
+Validation_Data = load('Reduced_DRCL_Data_Validation.txt');
+cd ..
 
+ValidationProcessData= zeros(size(Validation_Data,1), num_input*num_time_step+2);
+ValidationProcessDataIdx = 1;
+recent_wrong_dt_idx = 0;
 
+for k=num_time_step:size(Validation_Data,1)
+    % Check time stamp
+    dt_data = round(Validation_Data(k,1) - Validation_Data(k-1,1),3);
+    if dt_data ~= 1/hz
+        recent_wrong_dt_idx = k;
+    end
+    
+    if k < recent_wrong_dt_idx + num_time_step
+        continue
+    end
+    
+    ValidationProcessData(ValidationProcessDataIdx,num_input*num_time_step+1) = Validation_Data(k,65);
+    ValidationProcessData(ValidationProcessDataIdx,num_input*num_time_step+2) = 1-Validation_Data(k,65);
+    for time_step=1:num_time_step
+        for joint_data=1:6
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = (Validation_Data(k-time_step+1,1+joint_data)-MinTrainingData(1,1+joint_data)) / (MaxTrainingData(1,1+joint_data)-MinTrainingData(1,1+joint_data)); % current
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = (Validation_Data(k-time_step+1,7+joint_data)-MinTrainingData(1,7+joint_data)) / (MaxTrainingData(1,7+joint_data)-MinTrainingData(1,7+joint_data)); % q
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+3) = (Validation_Data(k-time_step+1,13+joint_data)-MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data)-MinTrainingData(1,13+joint_data)); % qdot
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+4) = (Validation_Data(k-time_step+1,19+joint_data)-MinTrainingData(1,19+joint_data)) / (MaxTrainingData(1,19+joint_data)-MinTrainingData(1,19+joint_data)); % q_desired
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+5) = (Validation_Data(k-time_step+1,25+joint_data)-MinTrainingData(1,25+joint_data)) / (MaxTrainingData(1,25+joint_data)-MinTrainingData(1,25+joint_data)); % qdot_desired
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+6) = (Validation_Data(k-time_step+1,31+joint_data)-MinTrainingData(1,31+joint_data)) / (MaxTrainingData(1,31+joint_data)-MinTrainingData(1,31+joint_data)); % dynamic torque
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+7) = (Validation_Data(k-time_step+1,37+joint_data)-MinTrainingData(1,37+joint_data)) / (MaxTrainingData(1,37+joint_data)-MinTrainingData(1,37+joint_data)); % qabs_desired
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+8) = (Validation_Data(k-time_step+1,43+joint_data)-MinTrainingData(1,43+joint_data)) / (MaxTrainingData(1,43+joint_data)-MinTrainingData(1,43+joint_data)); % qabsdot_desired
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+9) = (Validation_Data(k-time_step+1,55+joint_data)-MinTrainingData(1,55+joint_data)) / (MaxTrainingData(1,55+joint_data)-MinTrainingData(1,55+joint_data)); % temperature
+        end
+        for ee_data = 1:3
+            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*6+3*(time_step-1)+ee_data) = (Validation_Data(k-time_step+1,61+ee_data)-MinTrainingData(1,61+ee_data)) / (MaxTrainingData(1,61+ee_data)-MinTrainingData(1,61+ee_data)); % end effector acceleration
+        end
+    end
+    ValidationProcessDataIdx = ValidationProcessDataIdx +1;
+end
+disp(size(Validation_Data,1))
+clear Validation_Data;
+
+csvwrite('ValidationData.csv', ValidationProcessData(1:ValidationProcessDataIdx-1,:));
+
+%%
 % Test set
 cd TestSet
 Testing_Data = load('Reduced_DRCL_Data_Test.txt');
