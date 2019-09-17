@@ -270,7 +270,6 @@ for epoch in range(training_epochs):
             break
     # Validation Evaluation
     accu_val, reg_val, cost_val = m1.get_mean_error_hypothesis(X_validation, Y_validation)
-    print('Validation Time : ', time.time()-tft)
 
     print('Epoch:', '%04d' % (epoch + 1))
     print('Train Accuracy =', '{:.9f}'.format(accu_train))
