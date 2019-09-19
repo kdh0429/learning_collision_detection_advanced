@@ -11,7 +11,7 @@ Tool_list = ["0_00kg", "2_01kg", "5_01kg"];
 FolderName = dir;
 folder_idx = 1;
 for time_step = 1:size(FolderName,1)
-    if strcmp(FolderName(time_step).name(1), '2')
+    if strcmp(FolderName(time_step).name(1:6), 'robot1')
         DataFolderList(folder_idx) = string(FolderName(time_step).name);
         folder_idx = folder_idx + 1;
     end

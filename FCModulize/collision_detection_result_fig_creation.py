@@ -5,11 +5,14 @@ import matplotlib.pyplot as plt
 
 # parameters
 time_step = 5
-num_input = 57*time_step
+num_data_type = 10
+num_one_joint_data = time_step * (num_data_type-1)
+num_joint = 6
+num_input = num_one_joint_data*num_joint# + 3 * time_step # joint data + ee_acc data
 num_output = 2
 false_negative = 0.0
 false_positive = 0.0
-total_batch = 392 #1056 joint 1510 random
+total_batch = 220
 
 tf.reset_default_graph()
 sess = tf.Session()

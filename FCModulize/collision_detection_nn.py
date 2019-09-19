@@ -214,7 +214,7 @@ def parse_proto(example_proto):
 
 # Load Training Data with tf.data
 TrainData = tf.data.TFRecordDataset(["../data/TrainingData.tfrecord"])
-#TrainData = TrainData.shuffle(buffer_size=10*batch_size)
+TrainData = TrainData.shuffle(buffer_size=20*batch_size)
 TrainData = TrainData.map(parse_proto)
 TrainData = TrainData.batch(batch_size)
 #TrainData = TrainData.prefetch(buffer_size=100)
@@ -314,6 +314,6 @@ if wandb_use == True:
 TestData = pd.read_csv('../data/TestingData.csv').as_matrix().astype('float64')
 X_Test = TestData[:,0:num_input]
 Y_Test = TestData[:,-num_output:]
-accu_test, reg_test, cost_test  = m1.get_mean_error_hypothesis(x, y)
+accu_test, reg_test, cost_test  = m1.get_mean_error_hypothesis(X_Test, Y_Test)
 print('Test Accuracy: ', accu_test)
 print('Test Cost: ', cost_test)
