@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 # parameters
 time_step = 5
-num_data_type = 10
+num_data_type = 3
 num_one_joint_data = time_step * (num_data_type-1)
 num_joint = 6
 num_input = num_one_joint_data*num_joint# + 3 * time_step # joint data + ee_acc data

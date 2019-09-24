@@ -33,6 +33,7 @@ parser.add_argument('--training_epoch', type=int, default=150)
 parser.add_argument('--batch_size', type=int, default=1000)
 parser.add_argument('--drop_out', type=float, default=1.0)
 parser.add_argument('--regularization_factor', type=float, default=0.000004)
+parser.add_argument('--hidden_neuron', type=int, default=15)
 args = parser.parse_args()
 
 # Init wandb
@@ -59,6 +60,7 @@ training_epochs = args.training_epoch
 batch_size = args.batch_size
 drop_out = args.drop_out
 regul_factor = args.regularization_factor
+hidden_neurons = args.hidden_neuron
 
 
 # Tensorflow Setting
@@ -91,7 +93,7 @@ class Model:
             self.keep_prob = tf.placeholder(tf.float32, name="keep_prob")
             self.cross_entropy_weight = tf.placeholder(tf.float32, name="cross_entropy_weight")
             self.hidden_layers = 0
-            self.hidden_neurons = 15
+            self.hidden_neurons = hidden_neurons
 
             # Joint Data Layers
             for i in range(6):
@@ -213,7 +215,7 @@ def parse_proto(example_proto):
   return parsed_features['X'], parsed_features['y']
 
 # Load Training Data with tf.data
-TrainData = tf.data.TFRecordDataset(["../data/TrainingData.tfrecord"])
+TrainData = tf.data.TFRecordDataset(["../data/TrainingDataCollision.tfrecord"])
 TrainData = TrainData.shuffle(buffer_size=20*batch_size)
 TrainData = TrainData.map(parse_proto)
 TrainData = TrainData.batch(batch_size)
