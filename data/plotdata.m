@@ -1,31 +1,15 @@
-subplot(2,3,1)
-plot(DRCLData5(:,20)-DRCLData5(:,8))
+clc
+% for j = 1:6
+% subplot(2,3,j)
+% plot(ReducedDRCLData(:,31+j)-ReducedDRCLData(:,1+j))
+% hold on
+% plot(10*ReducedDRCLData(:,65))
+% end
+
+for i = 1:size(ReducedDRCLData,1)
+    acc_err(i) = norm(ReducedDRCLData(i,62:64));
+end
+plot(acc_err)
 hold on
-plot(0.1*DRCLData5(:,65))
-
-subplot(2,3,2)
-plot(DRCLData5(:,21)-DRCLData5(:,9))
-hold on
-plot(0.1*DRCLData5(:,65))
-
-subplot(2,3,3)
-plot(DRCLData5(:,22)-DRCLData5(:,10))
-hold on
-plot(0.1*DRCLData5(:,65))
-
-subplot(2,3,4)
-plot(DRCLData5(:,23)-DRCLData5(:,11))
-hold on
-plot(0.1*DRCLData5(:,65))
-
-subplot(2,3,5)
-plot(DRCLData5(:,24)-DRCLData5(:,12))
-hold on
-plot(0.1*DRCLData5(:,65))
-
-subplot(2,3,6)
-plot(DRCLData5(:,25)-DRCLData5(:,13))
-hold on
-plot(0.1*DRCLData5(:,65))
-
-
+plot(10 *ReducedDRCLData(:,65))
+hold off

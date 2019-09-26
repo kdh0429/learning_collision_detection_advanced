@@ -1,2 +1,3 @@
-model_checkpoint_path: "model.ckpt"
-all_model_checkpoint_paths: "model.ckpt"
+model_checkpoint_path: "/home/kim/dusan_ws/2nd/FCModulize/wandb/run-20190924_153608-9jfssk3u/model/model.ckpt"
+all_model_checkpoint_paths: "model/model.ckpt"
+all_model_checkpoint_paths: "/home/kim/dusan_ws/2nd/FCModulize/wandb/run-20190924_153608-9jfssk3u/model/model.ckpt"

@@ -3,13 +3,13 @@ import pandas as pd
 import numpy as np
 
 
-time_step = 10
+time_step = 5
 num_data_type = 3
 num_one_joint_data = time_step * (num_data_type-1)
 num_joint = 6
-num_input = num_one_joint_data*num_joint #+ 3*time_step # joint data + ee_acc data
+num_input = num_one_joint_data*num_joint + time_step # joint data + ee_acc data
 num_output = 2
-
+print(num_input)
 
 def array_to_tfrecords(X, y, data_num, output_file):
 

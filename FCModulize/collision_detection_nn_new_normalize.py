@@ -29,6 +29,7 @@ parser.add_argument('--use_wandb', type=str2bool, default=True)
 parser.add_argument('--use_gpu', type=str2bool, default=False)
 parser.add_argument('--use_narrow_structure', type=str2bool, default=False)
 parser.add_argument('--use_ee_acc_data', type=str2bool, default=False)
+parser.add_argument('--use_tf_record', type=str2bool, default=True)
 parser.add_argument('--learning_rate', type=float, default=0.00002)
 parser.add_argument('--training_epoch', type=int, default=150)
 parser.add_argument('--batch_size', type=int, default=1000)
@@ -43,7 +44,7 @@ if wandb_use == True:
     wandb.init(project="Dusan_2nd_Project", tensorboard=False)
 
 # Number of Input/Output Data
-time_step = 10
+time_step = 5
 num_data_type = 3
 num_one_joint_data = time_step * (num_data_type-1)
 num_joint = 6
@@ -51,7 +52,7 @@ if args.use_ee_acc_data is False :
     num_input = num_one_joint_data*num_joint # joint data
     num_concatenate_node = 6
 else:
-    num_input = num_one_joint_data*num_joint + 3 * time_step # joint data + ee_acc data
+    num_input = num_one_joint_data*num_joint + time_step # joint data + ee_acc data
     num_concatenate_node = 7
 num_output = 2
 
@@ -141,14 +142,14 @@ class Model:
                         
             if args.use_ee_acc_data is True :
                 # End Effector Accerlation Data Layers
-                W_ee1 = tf.get_variable("W_ee1", shape=[3*time_step, self.hidden_neurons], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
-                b_ee1 = tf.Variable(tf.random_normal([self.hidden_neurons]))
-                L_ee1 = tf.matmul(self.X[:, num_one_joint_data*6:num_one_joint_data*6+3*time_step], W_ee1) + b_ee1
+                W_ee1 = tf.get_variable("W_ee1", shape=[time_step, 5], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
+                b_ee1 = tf.Variable(tf.random_normal([5]))
+                L_ee1 = tf.matmul(self.X[:, num_one_joint_data*6:num_one_joint_data*6+time_step], W_ee1) + b_ee1
                 L_ee1 = tf.layers.batch_normalization(L_ee1, training=self.is_train)
                 L_ee1 = tf.nn.relu(L_ee1)
                 L_ee1 = tf.nn.dropout(L_ee1, keep_prob=self.keep_prob)
 
-                W_ee2 = tf.get_variable("W_ee2", shape=[self.hidden_neurons, 1], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
+                W_ee2 = tf.get_variable("W_ee2", shape=[5, 1], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
                 b_ee2 = tf.Variable(tf.random_normal([1]))
                 L_ee2 = tf.matmul(L_ee1, W_ee2) +b_ee2
                 L_ee2 = tf.layers.batch_normalization(L_ee2, training=self.is_train)
@@ -205,20 +206,27 @@ if wandb_use == True:
     wandb.config.L2_regularization = regul_factor
     wandb.config.use_narrow_structure = args.use_narrow_structure
 
-# Parse .tfrecord Data
-def parse_proto(example_proto):
-  features = {
-    'X': tf.FixedLenFeature((num_input,), tf.float32),
-    'y': tf.FixedLenFeature((num_output,), tf.float32),
-  }
-  parsed_features = tf.parse_single_example(example_proto, features)
-  return parsed_features['X'], parsed_features['y']
-# Load Training Data with tf.data
-TrainData = tf.data.TFRecordDataset(["../data/TrainingData.tfrecord"])
-TrainData = TrainData.shuffle(buffer_size=20*batch_size)
-TrainData = TrainData.map(parse_proto)
+# When Using tfrecord
+if args.use_tf_record is True:
+    # Parse .tfrecord Data
+    def parse_proto(example_proto):
+        features = {
+            'X': tf.FixedLenFeature((num_input,), tf.float32),
+            'y': tf.FixedLenFeature((num_output,), tf.float32),
+        }
+        parsed_features = tf.parse_single_example(example_proto, features)
+        return parsed_features['X'], parsed_features['y']
+    # Load Training Data with tf.data
+    TrainData = tf.data.TFRecordDataset(["../data/TrainingData.tfrecord"])
+    TrainData = TrainData.shuffle(buffer_size=20*batch_size)
+    TrainData = TrainData.map(parse_proto)
+
+else:
+    # Load Training Data in Memory
+    TrainDataRaw = pd.read_csv('../data/TrainingData.csv').as_matrix().astype('float64')
+    TrainData = tf.data.Dataset.from_tensor_slices((TrainDataRaw[:,0:num_input], TrainDataRaw[:,-num_output:]))
 TrainData = TrainData.batch(batch_size)
-#TrainData = TrainData.prefetch(buffer_size=100)
+TrainData = TrainData.prefetch(buffer_size=1)
 Trainiterator = TrainData.make_initializable_iterator()
 train_batch_x, train_batch_y = Trainiterator.get_next()
 

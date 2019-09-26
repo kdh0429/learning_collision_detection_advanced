@@ -45,7 +45,8 @@ MaxDeltaQdotdQdot = [0.030471368000000   0.032628351300000   0.032703119000000  
 MinDeltaQdotdQdot = [-0.037924034800000  -0.033170233000000  -0.037959729000000  -0.044833251500000  -0.044674244900000  -0.023149635200000];
 MaxDeltaThetaQ = [0.001582920000000   0.002739420600000   0.002450675600000   0.003926920000000   0.000942399100000   0.001213046000000];
 MinDeltaThetaQ = [-0.002181576000000  -0.003093831000000  -0.002274677500000  -0.001609872000000  -0.001274405000000  -0.001873778000000];
-
+MaxAcc = 10;
+MinAcc = 0;
 %% Training Set
 
 Tool_list = ["0_00kg", "2_01kg", "5_01kg"];
@@ -54,8 +55,8 @@ Free_Aggregate_Data = [];
 
 hz = 100;
 num_data_type = 3; % i, q, qdot, q_desired, qdot_desired, dyna, q_abs, qdot_abs, ee_acc
-num_input = 6*(num_data_type-1) + 3 * 1;
-num_time_step = 10;
+num_input = 6*(num_data_type-1) + 1;
+num_time_step = 5;
 
 % 날짜별
 FolderName = dir;
@@ -114,9 +115,7 @@ for k=num_time_step:size(Collision_Aggregate_Data,1)
             CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = 2*(Collision_Aggregate_Data(k-time_step+1,1+joint_data) - Collision_Aggregate_Data(k-time_step+1,31+joint_data) - MinCurrentDyna(joint_data)) / (MaxCurrentDyna(joint_data)-MinCurrentDyna(joint_data)) -1; % dyna_torque - current_torque
             CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = 2*(Collision_Aggregate_Data(k-time_step+1,25+joint_data) - MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data) - MinTrainingData(1,13+joint_data)) -1; % qdot
         end
-        for ee_data = 1:3
-            CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*6+3*(time_step-1)+ee_data) = (Collision_Aggregate_Data(k-time_step+1,61+ee_data)-MinTrainingData(1,61+ee_data)) / (MaxTrainingData(1,61+ee_data)-MinTrainingData(1,61+ee_data)); % end effector acceleration
-        end
+        CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*6+time_step) = (norm(Collision_Aggregate_Data(k-time_step+1,62:64))-MinAcc) / (MaxAcc-MinAcc); % end effector acceleration
     end
     CollisionProcessDataIdx = CollisionProcessDataIdx +1;
 end
@@ -172,9 +171,7 @@ for k=num_time_step:size(Free_Aggregate_Data,1)
             FreeProcessData(FreeProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = 2*(Free_Aggregate_Data(k-time_step+1,1+joint_data) - Free_Aggregate_Data(k-time_step+1,31+joint_data) - MinCurrentDyna(joint_data)) / (MaxCurrentDyna(joint_data)-MinCurrentDyna(joint_data)) -1; % dyna_torque - current_torque
             FreeProcessData(FreeProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = 2*(Free_Aggregate_Data(k-time_step+1,25+joint_data) - MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data) - MinTrainingData(1,13+joint_data)) -1; % qdot
         end
-        for ee_data = 1:3
-            FreeProcessData(FreeProcessDataIdx,(num_data_type-1)*num_time_step*6+3*(time_step-1)+ee_data) = (Free_Aggregate_Data(k-time_step+1,61+ee_data)-MinTrainingData(1,61+ee_data)) / (MaxTrainingData(1,61+ee_data)-MinTrainingData(1,61+ee_data)); % end effector acceleration
-        end
+        FreeProcessData(FreeProcessDataIdx,(num_data_type-1)*num_time_step*6+time_step) = (norm(Free_Aggregate_Data(k-time_step+1,62:64))-MinAcc) / (MaxAcc-MinAcc); % end effector acceleration
     end
     FreeProcessDataIdx = FreeProcessDataIdx +1;
 end
@@ -217,9 +214,7 @@ for k=num_time_step:size(Validation_Data,1)
            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = 2*(Validation_Data(k-time_step+1,1+joint_data) - Validation_Data(k-time_step+1,31+joint_data) - MinCurrentDyna(joint_data)) / (MaxCurrentDyna(joint_data)-MinCurrentDyna(joint_data)) -1; % dyna_torque - current_torque
            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = 2*(Validation_Data(k-time_step+1,25+joint_data) - MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data) - MinTrainingData(1,13+joint_data)) -1; % qdot
         end
-        for ee_data = 1:3
-            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*6+3*(time_step-1)+ee_data) = (Validation_Data(k-time_step+1,61+ee_data)-MinTrainingData(1,61+ee_data)) / (MaxTrainingData(1,61+ee_data)-MinTrainingData(1,61+ee_data)); % end effector acceleration
-        end
+        ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*6+time_step) = (norm(Validation_Data(k-time_step+1,62:64))-MinAcc) / (MaxAcc-MinAcc); % end effector acceleration
     end
     ValidationProcessDataIdx = ValidationProcessDataIdx +1;
 end
@@ -256,9 +251,7 @@ for k=num_time_step:size(Testing_Data,1)
            TestProcessData(TestProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = 2*(Testing_Data(k-time_step+1,1+joint_data) - Testing_Data(k-time_step+1,31+joint_data) - MinCurrentDyna(joint_data)) / (MaxCurrentDyna(joint_data)-MinCurrentDyna(joint_data)) -1; % dyna_torque - current_torque
            TestProcessData(TestProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = 2*(Testing_Data(k-time_step+1,25+joint_data) - MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data) - MinTrainingData(1,13+joint_data)) -1; % qdot
         end
-        for ee_data = 1:3
-            TestProcessData(TestProcessDataIdx,(num_data_type-1)*num_time_step*6+3*(time_step-1)+ee_data) = (Testing_Data(k-time_step+1,61+ee_data)-MinTrainingData(1,61+ee_data)) / (MaxTrainingData(1,61+ee_data)-MinTrainingData(1,61+ee_data)); % end effector acceleration
-        end
+        TestProcessData(TestProcessDataIdx,(num_data_type-1)*num_time_step*6+time_step) = (norm(Testing_Data(k-time_step+1,62:64))-MinAcc) / (MaxAcc-MinAcc); % end effector acceleration
     end
     TestProcessDataIdx = TestProcessDataIdx +1;
 end
