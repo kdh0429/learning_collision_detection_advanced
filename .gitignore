@@ -19,5 +19,8 @@ data/TestSet/TestingDivide/T*.csv
 data/TestSet/DRCL_Data_Test.txt
 data/TestSet/Reduced_DRCL_Data_Test.txt
 
+data/JointMotionRobot1
+data/JointMotionRobot2
+
 FCModulize/wandb/
 FCModulize/result/
