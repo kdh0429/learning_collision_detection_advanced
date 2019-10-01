@@ -27,7 +27,7 @@ def str2bool(v):
 parser = argparse.ArgumentParser()
 parser.add_argument('--use_wandb', type=str2bool, default=True)
 parser.add_argument('--use_gpu', type=str2bool, default=False)
-parser.add_argument('--use_narrow_structure', type=str2bool, default=False)
+parser.add_argument('--use_narrow_structure', type=str2bool, default=True)
 parser.add_argument('--use_ee_acc_data', type=str2bool, default=False)
 parser.add_argument('--use_tf_record', type=str2bool, default=True)
 parser.add_argument('--learning_rate', type=float, default=0.00002)
@@ -208,7 +208,7 @@ if wandb_use == True:
 
 # When Using tfrecord
 if args.use_tf_record is True:
-    # Parse .tfrecord Data
+    # Load Training Data with tf.data
     def parse_proto(example_proto):
         features = {
             'X': tf.FixedLenFeature((num_input,), tf.float32),
@@ -216,7 +216,6 @@ if args.use_tf_record is True:
         }
         parsed_features = tf.parse_single_example(example_proto, features)
         return parsed_features['X'], parsed_features['y']
-    # Load Training Data with tf.data
     TrainData = tf.data.TFRecordDataset(["../data/TrainingData.tfrecord"])
     TrainData = TrainData.shuffle(buffer_size=20*batch_size)
     TrainData = TrainData.map(parse_proto)
@@ -225,6 +224,7 @@ else:
     # Load Training Data in Memory
     TrainDataRaw = pd.read_csv('../data/TrainingData.csv').as_matrix().astype('float64')
     TrainData = tf.data.Dataset.from_tensor_slices((TrainDataRaw[:,0:num_input], TrainDataRaw[:,-num_output:]))
+    TrainData = TrainData.shuffle(buffer_size=20*batch_size)
 TrainData = TrainData.batch(batch_size)
 TrainData = TrainData.prefetch(buffer_size=1)
 Trainiterator = TrainData.make_initializable_iterator()
