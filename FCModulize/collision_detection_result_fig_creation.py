@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 
 # parameters
 time_step = 5
-num_data_type = 8
+num_data_type = 6
 num_one_joint_data = time_step * (num_data_type-1)
 num_joint = 6
-num_input = num_one_joint_data*num_joint # +  time_step # joint data + ee_acc data
+num_input = num_one_joint_data*num_joint  +  time_step # joint data + ee_acc data
 num_output = 2
 false_negative = 0.0
 false_positive = 0.0
@@ -43,11 +43,15 @@ for i in range(total_batch):
     t = []
     x_data_raw = []
     y_data_raw = []
+    JTS = []
+    DOB = []
 
     for line in rdr:
         line = [float(i) for i in line]
         x_data_raw.append(line[0:num_input])
         y_data_raw.append(line[-num_output:])
+        JTS.append(line[num_input])
+        DOB.append(line[num_input+1])
     t = range(len(x_data_raw))
     t = np.reshape(t,(-1,1))
     x_data_raw = np.reshape(x_data_raw, (-1, num_input))
@@ -86,6 +90,8 @@ for i in range(total_batch):
     if(i < total_batch):
         plt.plot(t,y_data_raw[:,0], color='r', marker="o", label='real')
         plt.plot(t,hypo[:,0], color='b',marker="x", label='prediction')
+        plt.plot(t,JTS[:], color='k', marker="x", label='jts')
+        plt.plot(t,DOB[:], color='y',marker="x", label='dob')
         plt.xlabel('time')
         plt.ylabel('Collision Probability')
         plt.legend()
