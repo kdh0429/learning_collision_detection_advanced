@@ -28,14 +28,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--use_wandb', type=str2bool, default=True)
 parser.add_argument('--use_gpu', type=str2bool, default=False)
 parser.add_argument('--use_narrow_structure', type=str2bool, default=True)
-parser.add_argument('--use_ee_acc_data', type=str2bool, default=False)
+parser.add_argument('--use_ee_acc_data', type=str2bool, default=True)
 parser.add_argument('--use_tf_record', type=str2bool, default=True)
-parser.add_argument('--learning_rate', type=float, default=0.00002)
+parser.add_argument('--learning_rate', type=float, default=0.00005)
 parser.add_argument('--training_epoch', type=int, default=150)
 parser.add_argument('--batch_size', type=int, default=1000)
 parser.add_argument('--drop_out', type=float, default=1.0)
 parser.add_argument('--regularization_factor', type=float, default=0.000004)
 parser.add_argument('--hidden_neuron', type=int, default=15)
+parser.add_argument('--cross_entropy_weight', type=float, default=1.0)
 args = parser.parse_args()
 
 # Init wandb
@@ -62,6 +63,7 @@ training_epochs = args.training_epoch
 batch_size = args.batch_size
 drop_out = args.drop_out
 regul_factor = args.regularization_factor
+cross_entropy_weight = args.cross_entropy_weight
 hidden_neurons = args.hidden_neuron
 hidden_neurons_2nd = hidden_neurons
 hidden_neurons_3rd = hidden_neurons
@@ -109,14 +111,14 @@ class Model:
                     b1 = tf.Variable(tf.random_normal([self.hidden_neurons]))
                     L1 = tf.matmul(self.X[:, num_one_joint_data*i:num_one_joint_data*(i+1)], W1) +b1
                     L1 = tf.layers.batch_normalization(L1, training=self.is_train)
-                    L1 = tf.nn.relu(L1)
+                    L1 = tf.nn.leaky_relu(L1)
                     L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
 
                     W2 = tf.get_variable("W2", shape=[self.hidden_neurons, hidden_neurons_2nd], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(scale=regul_factor))
                     b2 = tf.Variable(tf.random_normal([hidden_neurons_2nd]))
                     L2 = tf.matmul(L1, W2) +b2
                     L2 = tf.layers.batch_normalization(L2, training=self.is_train)
-                    L2 = tf.nn.relu(L2)
+                    L2 = tf.nn.leaky_relu(L2)
                     L2 = tf.nn.dropout(L2, keep_prob=self.keep_prob)
                     self.hidden_layers += 1
 
@@ -124,7 +126,7 @@ class Model:
                     b3 = tf.Variable(tf.random_normal([hidden_neurons_3rd]))
                     L3 = tf.matmul(L2, W3) +b3
                     L3 = tf.layers.batch_normalization(L3, training=self.is_train)
-                    L3 = tf.nn.relu(L3)
+                    L3 = tf.nn.leaky_relu(L3)
                     L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
                     self.hidden_layers += 1
 
@@ -132,9 +134,8 @@ class Model:
                     b4 = tf.Variable(tf.random_normal([1]))
                     L4 = tf.matmul(L3, W4) +b4
                     L4 = tf.layers.batch_normalization(L4, training=self.is_train)
-                    L4 = tf.nn.relu(L4)
+                    L4 = tf.nn.leaky_relu(L4)
                     L4 = tf.nn.dropout(L4, keep_prob=self.keep_prob)
-
                     if(i == 0):
                         self.LConcat = L4
                     else:
@@ -146,21 +147,22 @@ class Model:
                 b_ee1 = tf.Variable(tf.random_normal([self.hidden_neurons]))
                 L_ee1 = tf.matmul(self.X[:, num_one_joint_data*6:num_one_joint_data*6+time_step], W_ee1) + b_ee1
                 L_ee1 = tf.layers.batch_normalization(L_ee1, training=self.is_train)
-                L_ee1 = tf.nn.relu(L_ee1)
+                L_ee1 = tf.nn.leaky_relu(L_ee1)
                 L_ee1 = tf.nn.dropout(L_ee1, keep_prob=self.keep_prob)
 
                 W_ee2 = tf.get_variable("W_ee2", shape=[self.hidden_neurons, self.hidden_neurons], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
                 b_ee2 = tf.Variable(tf.random_normal([self.hidden_neurons]))
                 L_ee2 = tf.matmul(L_ee1, W_ee2) + b_ee2
                 L_ee2 = tf.layers.batch_normalization(L_ee2, training=self.is_train)
-                L_ee2 = tf.nn.relu(L_ee2)
+                L_ee2 = tf.nn.leaky_relu(L_ee2)
                 L_ee2 = tf.nn.dropout(L_ee2, keep_prob=self.keep_prob)
+                self.hidden_layers += 1
                 
                 W_ee3 = tf.get_variable("W_ee3", shape=[self.hidden_neurons, 1], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
                 b_ee3 = tf.Variable(tf.random_normal([1]))
                 L_ee3 = tf.matmul(L_ee2, W_ee3) +b_ee3
                 L_ee3 = tf.layers.batch_normalization(L_ee3, training=self.is_train)
-                L_ee3 = tf.nn.relu(L_ee3)
+                L_ee3 = tf.nn.leaky_relu(L_ee3)
                 L_ee3 = tf.nn.dropout(L_ee3, keep_prob=self.keep_prob)
                 self.hidden_layers += 1
                 self.LConcat = tf.concat([self.LConcat, L_ee3],1)
@@ -175,8 +177,8 @@ class Model:
 
             # define cost/loss & optimizer
             self.l2_reg = sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-            self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.logits, labels=self.Y))
-            #self.cost = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.Y, logits=self.logits, pos_weight=0.6))
+            #self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.logits, labels=self.Y))
+            self.cost = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=self.Y, logits=self.logits, pos_weight=cross_entropy_weight))
 
             self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             with tf.control_dependencies(self.update_ops):
@@ -210,6 +212,7 @@ if wandb_use == True:
     wandb.config.time_step = time_step
     wandb.config.hidden_layers, wandb.config.hidden_neurons = m1.get_hidden_number()
     wandb.config.L2_regularization = regul_factor
+    wandb.config.cross_entropy_weight = cross_entropy_weight
     wandb.config.use_narrow_structure = args.use_narrow_structure
 
 # When Using tfrecord

@@ -58,91 +58,91 @@ MaxDeltaThetaQ = [0.001582920000000   0.002739420600000   0.002450675600000   0.
 MinDeltaThetaQ = [-0.002181576000000  -0.003093831000000  -0.002274677500000  -0.001609872000000  -0.001274405000000  -0.001873778000000];
 MaxAcc = 10;
 MinAcc = 0;
-%% Training Set
-
-% 날짜별
-FolderName = dir;
-folder_idx = 1;
-for time_step = 1:size(FolderName,1)
-    if ((size(FolderName(time_step).name,2) > 5) && (strcmp(FolderName(time_step).name(1:6), 'robot1')))
-        DataFolderList(folder_idx) = string(FolderName(time_step).name);
-        folder_idx = folder_idx + 1;
-    end
-end
-
-% 충돌
-for joint_data = 1:size(DataFolderList,2)
-    cd (DataFolderList(joint_data))
-    FolderName = dir;
-    for k = 1:size(FolderName,1)
-        if strcmp(FolderName(k).name, 'collision')
-            cd('collision')
-            for tool_idx = 1:3
-                cd (Tool_list(tool_idx));
-                NumCollisionExpFolderName = dir;
-                for collision_num =1:size(NumCollisionExpFolderName,1)-2
-                    cd (int2str(collision_num))
-                    Data = load('Reduced_DRCL_Data.txt');
-                    Collision_Aggregate_Data = vertcat(Collision_Aggregate_Data, Data);
-                    cd ..;
-                end
-                cd ..;
-            end
-            cd ..;
-        end
-    end
-    cd ..;
-end
-
-
-CollisionProcessData= zeros(size(Collision_Aggregate_Data,1), num_input*num_time_step+2);
-CollisionProcessDataIdx = 1;
-recent_wrong_dt_idx = 0;
-num_continuous_collision = 0;
-
-for k=num_time_step:size(Collision_Aggregate_Data,1)
-    % Check time stamp
-    dt_data = round(Collision_Aggregate_Data(k,1) - Collision_Aggregate_Data(k-1,1),3);
-    if dt_data ~= 1/hz
-        recent_wrong_dt_idx = k;
-    end
-    % Delete after negative edge
-    if (Collision_Aggregate_Data(k,65) == 0 && Collision_Aggregate_Data(k-1,65) ==1)
-        recent_wrong_dt_idx = k+num_negative_edge_data_cut;
-    end
-    
-    if k < recent_wrong_dt_idx + num_time_step
-        continue
-    end
-    
-    if (Collision_Aggregate_Data(k,65) ==1)
-        num_continuous_collision = num_continuous_collision + 1;
-    else
-        num_continuous_collision = 0;
-    end
-    
-    if (num_continuous_collision < num_collision_data_cut)
-        CollisionProcessData(CollisionProcessDataIdx,num_input*num_time_step+1) = Collision_Aggregate_Data(k,65);
-        CollisionProcessData(CollisionProcessDataIdx,num_input*num_time_step+2) = 1-Collision_Aggregate_Data(k,65);
-        for time_step=1:num_time_step
-            for joint_data=1:6
-                CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = 2*(Collision_Aggregate_Data(k-time_step+1,1+joint_data) - Collision_Aggregate_Data(k-time_step+1,31+joint_data) - MinCurrentDyna(joint_data)) / (MaxCurrentDyna(joint_data)-MinCurrentDyna(joint_data)) -1; % dyna_torque - current_torque
-                CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = 2*(Collision_Aggregate_Data(k-time_step+1,13+joint_data) - MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data) - MinTrainingData(1,13+joint_data)) -1; % qdot
-                CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+3) = 2*(Collision_Aggregate_Data(k-time_step+1,19+joint_data) - Collision_Aggregate_Data(k-time_step+1,7+joint_data) - MinDeltaQdQ(joint_data)) / (MaxDeltaQdQ(joint_data)-MinDeltaQdQ(joint_data)) -1; % q error
-                CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+4) = 2*(Collision_Aggregate_Data(k-time_step+1,25+joint_data) - Collision_Aggregate_Data(k-time_step+1,13+joint_data) - MinDeltaQdotdQdot(joint_data)) / (MaxDeltaQdotdQdot(joint_data)-MinDeltaQdotdQdot(joint_data)) -1; % qdot error
-                CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+5) = 2*(Collision_Aggregate_Data(k-time_step+1,37+joint_data) - Collision_Aggregate_Data(k-time_step+1,7+joint_data) - MinDeltaThetaQ(joint_data)) / (MaxDeltaThetaQ(joint_data)-MinDeltaThetaQ(joint_data)) -1; % qdot error
-            end
-            CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*6+time_step) = (norm(Collision_Aggregate_Data(k-time_step+1,62:64))-MinAcc) / (MaxAcc-MinAcc); % end effector acceleration
-        end
-        
-        CollisionProcessDataIdx = CollisionProcessDataIdx +1;
-    end
-    
-end
-disp(size(Collision_Aggregate_Data,1))
-clear Collision_Aggregate_Data;
-
-
+% %% Training Set
+% 
+% % 날짜별
+% FolderName = dir;
+% folder_idx = 1;
+% for time_step = 1:size(FolderName,1)
+%     if ((size(FolderName(time_step).name,2) > 5) && (strcmp(FolderName(time_step).name(1:6), 'robot1')))
+%         DataFolderList(folder_idx) = string(FolderName(time_step).name);
+%         folder_idx = folder_idx + 1;
+%     end
+% end
+% 
+% % 충돌
+% for joint_data = 1:size(DataFolderList,2)
+%     cd (DataFolderList(joint_data))
+%     FolderName = dir;
+%     for k = 1:size(FolderName,1)
+%         if strcmp(FolderName(k).name, 'collision')
+%             cd('collision')
+%             for tool_idx = 1:3
+%                 cd (Tool_list(tool_idx));
+%                 NumCollisionExpFolderName = dir;
+%                 for collision_num =1:size(NumCollisionExpFolderName,1)-2
+%                     cd (int2str(collision_num))
+%                     Data = load('Reduced_DRCL_Data.txt');
+%                     Collision_Aggregate_Data = vertcat(Collision_Aggregate_Data, Data);
+%                     cd ..;
+%                 end
+%                 cd ..;
+%             end
+%             cd ..;
+%         end
+%     end
+%     cd ..;
+% end
+% 
+% 
+% CollisionProcessData= zeros(size(Collision_Aggregate_Data,1), num_input*num_time_step+2);
+% CollisionProcessDataIdx = 1;
+% recent_wrong_dt_idx = 0;
+% num_continuous_collision = 0;
+% 
+% for k=num_time_step:size(Collision_Aggregate_Data,1)
+%     % Check time stamp
+%     dt_data = round(Collision_Aggregate_Data(k,1) - Collision_Aggregate_Data(k-1,1),3);
+%     if dt_data ~= 1/hz
+%         recent_wrong_dt_idx = k;
+%     end
+%     % Delete after negative edge
+%     if (Collision_Aggregate_Data(k,65) == 0 && Collision_Aggregate_Data(k-1,65) ==1)
+%         recent_wrong_dt_idx = k+num_negative_edge_data_cut;
+%     end
+%     
+%     if k < recent_wrong_dt_idx + num_time_step
+%         continue
+%     end
+%     
+%     if (Collision_Aggregate_Data(k,65) ==1)
+%         num_continuous_collision = num_continuous_collision + 1;
+%     else
+%         num_continuous_collision = 0;
+%     end
+%     
+%     if (num_continuous_collision < num_collision_data_cut)
+%         CollisionProcessData(CollisionProcessDataIdx,num_input*num_time_step+1) = Collision_Aggregate_Data(k,65);
+%         CollisionProcessData(CollisionProcessDataIdx,num_input*num_time_step+2) = 1-Collision_Aggregate_Data(k,65);
+%         for time_step=1:num_time_step
+%             for joint_data=1:6
+%                 CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = 2*(Collision_Aggregate_Data(k-time_step+1,1+joint_data) - Collision_Aggregate_Data(k-time_step+1,31+joint_data) - MinCurrentDyna(joint_data)) / (MaxCurrentDyna(joint_data)-MinCurrentDyna(joint_data)) -1; % dyna_torque - current_torque
+%                 CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = 2*(Collision_Aggregate_Data(k-time_step+1,13+joint_data) - MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data) - MinTrainingData(1,13+joint_data)) -1; % qdot
+%                 CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+3) = 2*(Collision_Aggregate_Data(k-time_step+1,19+joint_data) - Collision_Aggregate_Data(k-time_step+1,7+joint_data) - MinDeltaQdQ(joint_data)) / (MaxDeltaQdQ(joint_data)-MinDeltaQdQ(joint_data)) -1; % q error
+%                 CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+4) = 2*(Collision_Aggregate_Data(k-time_step+1,25+joint_data) - Collision_Aggregate_Data(k-time_step+1,13+joint_data) - MinDeltaQdotdQdot(joint_data)) / (MaxDeltaQdotdQdot(joint_data)-MinDeltaQdotdQdot(joint_data)) -1; % qdot error
+%                 CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+5) = 2*(Collision_Aggregate_Data(k-time_step+1,37+joint_data) - Collision_Aggregate_Data(k-time_step+1,7+joint_data) - MinDeltaThetaQ(joint_data)) / (MaxDeltaThetaQ(joint_data)-MinDeltaThetaQ(joint_data)) -1; % qdot error
+%             end
+%             CollisionProcessData(CollisionProcessDataIdx,(num_data_type-1)*num_time_step*6+time_step) = (norm(Collision_Aggregate_Data(k-time_step+1,62:64))-MinAcc) / (MaxAcc-MinAcc); % end effector acceleration
+%         end
+%         
+%         CollisionProcessDataIdx = CollisionProcessDataIdx +1;
+%     end
+%     
+% end
+% disp(size(Collision_Aggregate_Data,1))
+% clear Collision_Aggregate_Data;
+% 
+% 
 % % 자유모션
 % for joint_data = 1:size(DataFolderList,2)
 %     cd (DataFolderList(joint_data))
@@ -177,11 +177,11 @@ clear Collision_Aggregate_Data;
 %     % Check time stamp
 %     dt_data = round(Free_Aggregate_Data(k,1) - Free_Aggregate_Data(k-1,1),3);
 %     if dt_data ~= 1/hz
-%         recent_wrong_dt_idx = k+num_negative_edge_data_cut;
+%         recent_wrong_dt_idx = k;
 %     end
 %     % Delete after negative edge
 %     if (Free_Aggregate_Data(k,65) == 0 && Free_Aggregate_Data(k-1,65) ==1)
-%         recent_wrong_dt_idx = k;
+%         recent_wrong_dt_idx = k+num_negative_edge_data_cut;
 %     end
 %     
 %     if k < recent_wrong_dt_idx + num_time_step
@@ -211,71 +211,72 @@ clear Collision_Aggregate_Data;
 % end
 % disp(size(Free_Aggregate_Data,1))
 % clear Free_Aggregate_Data;
-
-DataAll = CollisionProcessData(1:CollisionProcessDataIdx-1,:); %FreeProcessData(1:FreeProcessDataIdx-1,:)];
-clear CollisionProcessData FreeProcessData FreeProcessDataMix;
-DataAllMix = DataAll(randperm(size(DataAll,1)),:);
-clear DataAll;
-
-csvwrite('TrainingData.csv', DataAllMix);
-
-%% Validation Set
-
-cd ValidationSet
-Validation_Data = load('Reduced_DRCL_Data_Validation.txt');
-cd ..
-
-ValidationProcessData= zeros(size(Validation_Data,1), num_input*num_time_step+2);
-ValidationProcessDataIdx = 1;
-recent_wrong_dt_idx = 0;
-num_continuous_collision = 0;
-
-for k=num_time_step:size(Validation_Data,1)
-    % Check time stamp
-    dt_data = round(Validation_Data(k,1) - Validation_Data(k-1,1),3);
-    if dt_data ~= 1/hz
-        recent_wrong_dt_idx = k+num_negative_edge_data_cut;
-    end
-    % Delete after negative edge
-    if (Validation_Data(k,65) == 0 && Validation_Data(k-1,65) ==1)
-        recent_wrong_dt_idx = k;
-    end
-    
-    if k < recent_wrong_dt_idx + num_time_step
-        continue
-    end
-    
-    if (Validation_Data(k,65) ==1)
-        num_continuous_collision = num_continuous_collision + 1;
-    else
-        num_continuous_collision = 0;
-    end
-    
-    if (num_continuous_collision < num_collision_data_cut)
-        ValidationProcessData(ValidationProcessDataIdx,num_input*num_time_step+1) = Validation_Data(k,65);
-        ValidationProcessData(ValidationProcessDataIdx,num_input*num_time_step+2) = 1-Validation_Data(k,65);
-        for time_step=1:num_time_step
-            for joint_data=1:6
-                ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = 2*(Validation_Data(k-time_step+1,1+joint_data) - Validation_Data(k-time_step+1,31+joint_data) - MinCurrentDyna(joint_data)) / (MaxCurrentDyna(joint_data)-MinCurrentDyna(joint_data)) -1; % dyna_torque - current_torque
-                ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = 2*(Validation_Data(k-time_step+1,13+joint_data) - MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data) - MinTrainingData(1,13+joint_data)) -1; % qdot
-                ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+3) = 2*(Validation_Data(k-time_step+1,19+joint_data) - Validation_Data(k-time_step+1,7+joint_data) - MinDeltaQdQ(joint_data)) / (MaxDeltaQdQ(joint_data)-MinDeltaQdQ(joint_data)) -1; % dyna_torque - current_torque
-                ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+4) = 2*(Validation_Data(k-time_step+1,25+joint_data) - Validation_Data(k-time_step+1,13+joint_data) - MinDeltaQdotdQdot(joint_data)) / (MaxDeltaQdotdQdot(joint_data)-MinDeltaQdotdQdot(joint_data)) -1; % dyna_torque - current_torque
-                ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+5) = 2*(Validation_Data(k-time_step+1,37+joint_data) - Validation_Data(k-time_step+1,7+joint_data) - MinDeltaThetaQ(joint_data)) / (MaxDeltaThetaQ(joint_data)-MinDeltaThetaQ(joint_data)) -1; % qdot error
-            end
-            ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*6+time_step) = (norm(Validation_Data(k-time_step+1,62:64))-MinAcc) / (MaxAcc-MinAcc); % end effector acceleration
-        end
-        ValidationProcessDataIdx = ValidationProcessDataIdx +1;
-    end
-end
-disp(size(Validation_Data,1))
-clear Validation_Data;
-
-csvwrite('ValidationData.csv', ValidationProcessData(1:ValidationProcessDataIdx-1,:));
+% 
+% DataAll = [CollisionProcessData(1:CollisionProcessDataIdx-1,:); FreeProcessData(1:FreeProcessDataIdx-1,:)];
+% clear CollisionProcessData FreeProcessData FreeProcessDataMix;
+% DataAllMix = DataAll(randperm(size(DataAll,1)),:);
+% clear DataAll;
+% 
+% csvwrite('TrainingData.csv', DataAllMix);
+% 
+% %% Validation Set
+% 
+% cd ValidationSet
+% Validation_Data = load('Reduced_DRCL_Data_Validation.txt');
+% cd ..
+% 
+% ValidationProcessData= zeros(size(Validation_Data,1), num_input*num_time_step+2);
+% ValidationProcessDataIdx = 1;
+% recent_wrong_dt_idx = 0;
+% num_continuous_collision = 0;
+% 
+% for k=num_time_step:size(Validation_Data,1)
+%     % Check time stamp
+%     dt_data = round(Validation_Data(k,1) - Validation_Data(k-1,1),3);
+%     if dt_data ~= 1/hz
+%         recent_wrong_dt_idx = k;
+%     end
+%     % Delete after negative edge
+%     if (Validation_Data(k,65) == 0 && Validation_Data(k-1,65) ==1)
+%         recent_wrong_dt_idx = k+num_negative_edge_data_cut;
+%     end
+%     
+%     if k < recent_wrong_dt_idx + num_time_step
+%         continue
+%     end
+%     
+%     if (Validation_Data(k,65) ==1)
+%         num_continuous_collision = num_continuous_collision + 1;
+%     else
+%         num_continuous_collision = 0;
+%     end
+%     
+%     if (num_continuous_collision < num_collision_data_cut)
+%         ValidationProcessData(ValidationProcessDataIdx,num_input*num_time_step+1) = Validation_Data(k,65);
+%         ValidationProcessData(ValidationProcessDataIdx,num_input*num_time_step+2) = 1-Validation_Data(k,65);
+%         for time_step=1:num_time_step
+%             for joint_data=1:6
+%                 ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = 2*(Validation_Data(k-time_step+1,1+joint_data) - Validation_Data(k-time_step+1,31+joint_data) - MinCurrentDyna(joint_data)) / (MaxCurrentDyna(joint_data)-MinCurrentDyna(joint_data)) -1; % dyna_torque - current_torque
+%                 ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = 2*(Validation_Data(k-time_step+1,13+joint_data) - MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data) - MinTrainingData(1,13+joint_data)) -1; % qdot
+%                 ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+3) = 2*(Validation_Data(k-time_step+1,19+joint_data) - Validation_Data(k-time_step+1,7+joint_data) - MinDeltaQdQ(joint_data)) / (MaxDeltaQdQ(joint_data)-MinDeltaQdQ(joint_data)) -1; % dyna_torque - current_torque
+%                 ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+4) = 2*(Validation_Data(k-time_step+1,25+joint_data) - Validation_Data(k-time_step+1,13+joint_data) - MinDeltaQdotdQdot(joint_data)) / (MaxDeltaQdotdQdot(joint_data)-MinDeltaQdotdQdot(joint_data)) -1; % dyna_torque - current_torque
+%                 ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+5) = 2*(Validation_Data(k-time_step+1,37+joint_data) - Validation_Data(k-time_step+1,7+joint_data) - MinDeltaThetaQ(joint_data)) / (MaxDeltaThetaQ(joint_data)-MinDeltaThetaQ(joint_data)) -1; % qdot error
+%             end
+%             ValidationProcessData(ValidationProcessDataIdx,(num_data_type-1)*num_time_step*6+time_step) = (norm(Validation_Data(k-time_step+1,62:64))-MinAcc) / (MaxAcc-MinAcc); % end effector acceleration
+%         end
+%         ValidationProcessDataIdx = ValidationProcessDataIdx +1;
+%     end
+% end
+% disp(size(Validation_Data,1))
+% clear Validation_Data;
+% 
+% csvwrite('ValidationData.csv', ValidationProcessData(1:ValidationProcessDataIdx-1,:));
 
 %%
 % Test set
 cd TestSet
 Testing_Data = load('Reduced_DRCL_Data_Test.txt');
+Testing_Data_Free = load('Reduced_DRCL_Data_Test_Free.txt');
 cd ..
 
 TestProcessData= zeros(size(Testing_Data,1), num_input*num_time_step+4); % Log Torque sensor and DOB result also
@@ -286,11 +287,11 @@ for k=num_time_step:size(Testing_Data,1)
     % Check time stamp
     dt_data = round(Testing_Data(k,1) - Testing_Data(k-1,1),3);
     if dt_data ~= 1/hz
-        recent_wrong_dt_idx = k+num_negative_edge_data_cut;
+        recent_wrong_dt_idx = k;
     end
     % Delete after negative edge
     if (Testing_Data(k,65) == 0 && Testing_Data(k-1,65) ==1)
-        recent_wrong_dt_idx = k;
+        recent_wrong_dt_idx = k+num_negative_edge_data_cut;
     end
     
     if k < recent_wrong_dt_idx + num_time_step
@@ -325,7 +326,7 @@ disp(size(Testing_Data,1))
 
 csvwrite('TestingData.csv', TestProcessData(1:TestProcessDataIdx-1,:));
 
-% Raw Test Data
+% No cut Test Data
 TestProcessRawData= zeros(size(Testing_Data,1), num_input*num_time_step+4); % Log Torque sensor and DOB result also
 TestProcessRawDataIdx = 1;
 recent_wrong_dt_idx = 0;
@@ -360,5 +361,43 @@ end
 disp(size(Testing_Data,1))
 clear Testing_Data;
 
-csvwrite('TestingDataRaw.csv', TestProcessRawData(1:TestProcessRawDataIdx-1,:));
+csvwrite('TestingDataNocut.csv', TestProcessRawData(1:TestProcessRawDataIdx-1,:));
+
+
+% Free Test Data
+TestProcessFreeData= zeros(size(Testing_Data_Free,1), num_input*num_time_step+4); % Log Torque sensor and DOB result also
+TestProcessFreeDataIdx = 1;
+recent_wrong_dt_idx = 0;
+
+for k=num_time_step:size(Testing_Data_Free,1)
+    % Check time stamp
+    dt_data = round(Testing_Data_Free(k,1) - Testing_Data_Free(k-1,1),3);
+    if dt_data ~= 1/hz
+        recent_wrong_dt_idx = k;
+    end
+    
+    if k < recent_wrong_dt_idx + num_time_step
+        continue
+    end
+    
+    TestProcessFreeData(TestProcessFreeDataIdx,num_input*num_time_step+1) = Testing_Data_Free(k,66);
+    TestProcessFreeData(TestProcessFreeDataIdx,num_input*num_time_step+2) = Testing_Data_Free(k,67);
+    TestProcessFreeData(TestProcessFreeDataIdx,num_input*num_time_step+3) = Testing_Data_Free(k,65);
+    TestProcessFreeData(TestProcessFreeDataIdx,num_input*num_time_step+4) = 1-Testing_Data_Free(k,65);
+    for time_step=1:num_time_step
+        for joint_data=1:6
+            TestProcessFreeData(TestProcessFreeDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+1) = 2*(Testing_Data_Free(k-time_step+1,1+joint_data) - Testing_Data_Free(k-time_step+1,31+joint_data) - MinCurrentDyna(joint_data)) / (MaxCurrentDyna(joint_data)-MinCurrentDyna(joint_data)) -1; % dyna_torque - current_torque
+            TestProcessFreeData(TestProcessFreeDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+2) = 2*(Testing_Data_Free(k-time_step+1,13+joint_data) - MinTrainingData(1,13+joint_data)) / (MaxTrainingData(1,13+joint_data) - MinTrainingData(1,13+joint_data)) -1; % qdot
+            TestProcessFreeData(TestProcessFreeDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+3) = 2*(Testing_Data_Free(k-time_step+1,19+joint_data) - Testing_Data_Free(k-time_step+1,7+joint_data) - MinDeltaQdQ(joint_data)) / (MaxDeltaQdQ(joint_data)-MinDeltaQdQ(joint_data)) -1; % dyna_torque - current_torque
+            TestProcessFreeData(TestProcessFreeDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+4) = 2*(Testing_Data_Free(k-time_step+1,25+joint_data) - Testing_Data_Free(k-time_step+1,13+joint_data) - MinDeltaQdotdQdot(joint_data)) / (MaxDeltaQdotdQdot(joint_data)-MinDeltaQdotdQdot(joint_data)) -1; % dyna_torque - current_torque
+            TestProcessFreeData(TestProcessFreeDataIdx,(num_data_type-1)*num_time_step*(joint_data-1)+(num_data_type-1)*(time_step-1)+5) = 2*(Testing_Data_Free(k-time_step+1,37+joint_data) - Testing_Data_Free(k-time_step+1,7+joint_data) - MinDeltaThetaQ(joint_data)) / (MaxDeltaThetaQ(joint_data)-MinDeltaThetaQ(joint_data)) -1; % qdot error
+        end
+        TestProcessFreeData(TestProcessFreeDataIdx,(num_data_type-1)*num_time_step*6+time_step) = (norm(Testing_Data_Free(k-time_step+1,62:64))-MinAcc) / (MaxAcc-MinAcc); % end effector acceleration
+    end
+    TestProcessFreeDataIdx = TestProcessFreeDataIdx +1;
+end
+disp(size(Testing_Data_Free,1))
+clear Testing_Data;
+
+csvwrite('TestingDataFree.csv', TestProcessFreeData(1:TestProcessFreeDataIdx-1,:));
 
