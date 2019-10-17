@@ -1,5 +1,7 @@
 data/robot*/
 
+data/TestingDataNocut.csv
+data/TestingDataFree.csv
 data/TestingData.csv
 data/TrainingData.csv
 data/ValidationData.csv
@@ -18,6 +20,8 @@ data/TestSet/robot3/
 data/TestSet/TestingDivide/T*.csv
 data/TestSet/DRCL_Data_Test.txt
 data/TestSet/Reduced_DRCL_Data_Test.txt
+data/TestSet/DRCL_Data_Test_Free.txt
+data/TestSet/Reduced_DRCL_Data_Test_Free.txt
 
 data/JointMotionRobot1
 data/JointMotionRobot2
@@ -25,3 +29,7 @@ data/JointMotionRobot2
 FCModulize/wandb/
 FCModulize/result/
 FCModulize/model/
+
+RealRobotCode/model/
+RealRobotCode/TestingDivide/T*.csv
+RealRobotCode/TestingDivideProcess/T*.csv
