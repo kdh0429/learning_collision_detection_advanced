@@ -1,8 +1,7 @@
 data/robot*/
 
-data/TestingDataNocut.csv
+data/TestingDataCollision.csv
 data/TestingDataFree.csv
-data/TestingData.csv
 data/TrainingData.csv
 data/ValidationData.csv
 
