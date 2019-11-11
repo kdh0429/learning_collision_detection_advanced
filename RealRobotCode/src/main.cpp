@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
     float Output[2]= {0.0};
     CEstimateCollisionNN NN;
 
-    fstream classFile("/home/kim/dusan_ws/Real_Robot_Code/2nd/build_ws_impact_cut/TestingDivide/Testing_data_136.csv");
+    fstream classFile("/home/kim/dusan_ws/2nd/RealRobotCode/TestingDivideProcess/Testing_data_6.csv");
     string line;
 
     string data_string;

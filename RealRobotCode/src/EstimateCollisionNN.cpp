@@ -65,8 +65,14 @@ void CEstimateCollisionNN::EstimateCollision(float dInput[], float dOutput[])
 	///< Layer 4
 	CalLayer4(m_dLayer3,m_dLayer4);
 
+	///< Layer 5
+	CalLayer5(m_dLayer4,m_dLayer5);
+
+	///< Layer 6
+	CalLayer6(m_dLayer5,m_dLayer6);
+
 	///< Output
-	CalOutput(m_dLayer4,dOutput);
+	CalOutput(m_dLayer6,dOutput);
 
 	writeFile<< dOutput[0]<<'\n';
 }
@@ -202,8 +208,6 @@ void CEstimateCollisionNN::CalLayer3(float dInput[], float dOutput[])
 			dOutput[i] = dOutputNN[i];
 		}
 	}
-
-
 }
 
 
@@ -231,7 +235,64 @@ void CEstimateCollisionNN::CalLayer4(float dInput[], float dOutput[])
 		}
 	}
 	dOutput[6] = dInput[90];
+}
 
+void CEstimateCollisionNN::CalLayer5(float dInput[], float dOutput[])
+{
+	float dOutputNN[15] = {0.0};
+
+	///< Calculation Neural Network
+	for (unsigned int nOutputNode = 0; nOutputNode < 15; nOutputNode++){
+		dOutputNN[nOutputNode] = m_dBias[307 + nOutputNode];
+
+		for (unsigned int nInputNode = 0; nInputNode < 7; nInputNode++){
+			dOutputNN[nOutputNode] += m_dWeight[5355 + nOutputNode * 7 + nInputNode] * dInput[nInputNode];
+		}
+	}
+
+	///< Calculation Batch Normalization (����� �ۼ�)
+	for (unsigned int nOutputNode = 0; nOutputNode < 15; nOutputNode++){
+		dOutputNN[nOutputNode] = m_dGamma[307 + nOutputNode] * (dOutputNN[nOutputNode] - m_dMean[307 + nOutputNode])/sqrt(m_dVariance[307 + nOutputNode]+0.001) + m_dBeta[307 + nOutputNode];
+	}
+	
+	///< Calculation Activation Function (RELU)
+	for (unsigned int i = 0;i < 15; i++){
+		if (dOutputNN[i] < 0.0){
+			dOutput[i] = 0.0;
+		}
+		else{
+			dOutput[i] = dOutputNN[i];
+		}
+	}
+}
+
+void CEstimateCollisionNN::CalLayer6(float dInput[], float dOutput[])
+{
+	float dOutputNN[15] = {0.0};
+
+	///< Calculation Neural Network
+	for (unsigned int nOutputNode = 0; nOutputNode < 15; nOutputNode++){
+		dOutputNN[nOutputNode] = m_dBias[322 + nOutputNode];
+
+		for (unsigned int nInputNode = 0; nInputNode < 15; nInputNode++){
+			dOutputNN[nOutputNode] += m_dWeight[5460 + nOutputNode * 15 + nInputNode] * dInput[nInputNode];
+		}
+	}
+
+	///< Calculation Batch Normalization (����� �ۼ�)
+	for (unsigned int nOutputNode = 0; nOutputNode < 15; nOutputNode++){
+		dOutputNN[nOutputNode] = m_dGamma[322 + nOutputNode] * (dOutputNN[nOutputNode] - m_dMean[322 + nOutputNode])/sqrt(m_dVariance[322 + nOutputNode]+0.001) + m_dBeta[322 + nOutputNode];
+	}
+	
+	///< Calculation Activation Function (RELU)
+	for (unsigned int i = 0;i < 15; i++){
+		if (dOutputNN[i] < 0.0){
+			dOutput[i] = 0.0;
+		}
+		else{
+			dOutput[i] = dOutputNN[i];
+		}
+	}
 }
 
 
@@ -240,15 +301,11 @@ void CEstimateCollisionNN::CalOutput(float dInput[], float dOutput[])
 	float dOutputNN[2] = {0.0};
 	///< Calculation Neural Network
 	for (unsigned int nOutputNode = 0; nOutputNode < 2; nOutputNode++){
-		dOutputNN[nOutputNode] = m_dBias[307 + nOutputNode];
-		for (unsigned int nInputNode = 0; nInputNode < 7; nInputNode++){
-			dOutputNN[nOutputNode] += m_dWeight[5355 + nOutputNode * 7 + nInputNode] * dInput[nInputNode];
-			//if (nOutputNode ==0)
-				writeFile<<m_dWeight[5355 + nOutputNode * 7 + nInputNode] * dInput[nInputNode]<<' ';
+		dOutputNN[nOutputNode] = m_dBias[337 + nOutputNode];
+		for (unsigned int nInputNode = 0; nInputNode < 15; nInputNode++){
+			dOutputNN[nOutputNode] += m_dWeight[5685 + nOutputNode * 15 + nInputNode] * dInput[nInputNode];
 		}
 	}
-	writeFile<< m_dBias[307]<<' ';
-	writeFile<< m_dBias[308]<<' ';
 	float Max = 0.0;//max(dOutputNN[0],dOutputNN[1]);
 	dOutput[0] = exp(dOutputNN[0]-Max)/(exp(dOutputNN[0]-Max) + exp(dOutputNN[1]-Max));
 	dOutput[1] = exp(dOutputNN[1]-Max)/(exp(dOutputNN[0]-Max) + exp(dOutputNN[1]-Max));

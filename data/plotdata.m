@@ -2,9 +2,9 @@ clc
 
 for j = 1:6
 subplot(2,3,j)
-plot(ReducedDRCLData(:,19+j)-ReducedDRCLData(:,7+j))
+plot(ReducedDRCLData(:,25+j)-ReducedDRCLData(:,13+j))
 hold on
-plot(0.003*ReducedDRCLData(:,65))
+plot(0.02*ReducedDRCLData(:,65))
 hold off
 end
 

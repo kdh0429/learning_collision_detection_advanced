@@ -111,14 +111,14 @@ class Model:
                     b1 = tf.Variable(tf.random_normal([self.hidden_neurons]))
                     L1 = tf.matmul(self.X[:, num_one_joint_data*i:num_one_joint_data*(i+1)], W1) +b1
                     L1 = tf.layers.batch_normalization(L1, training=self.is_train)
-                    L1 = tf.nn.leaky_relu(L1)
+                    L1 = tf.nn.relu(L1)
                     L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
 
                     W2 = tf.get_variable("W2", shape=[self.hidden_neurons, hidden_neurons_2nd], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(scale=regul_factor))
                     b2 = tf.Variable(tf.random_normal([hidden_neurons_2nd]))
                     L2 = tf.matmul(L1, W2) +b2
                     L2 = tf.layers.batch_normalization(L2, training=self.is_train)
-                    L2 = tf.nn.leaky_relu(L2)
+                    L2 = tf.nn.relu(L2)
                     L2 = tf.nn.dropout(L2, keep_prob=self.keep_prob)
                     self.hidden_layers += 1
 
@@ -126,7 +126,7 @@ class Model:
                     b3 = tf.Variable(tf.random_normal([hidden_neurons_3rd]))
                     L3 = tf.matmul(L2, W3) +b3
                     L3 = tf.layers.batch_normalization(L3, training=self.is_train)
-                    L3 = tf.nn.leaky_relu(L3)
+                    L3 = tf.nn.relu(L3)
                     L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
                     self.hidden_layers += 1
 
@@ -134,7 +134,7 @@ class Model:
                     b4 = tf.Variable(tf.random_normal([1]))
                     L4 = tf.matmul(L3, W4) +b4
                     L4 = tf.layers.batch_normalization(L4, training=self.is_train)
-                    L4 = tf.nn.leaky_relu(L4)
+                    L4 = tf.nn.relu(L4)
                     L4 = tf.nn.dropout(L4, keep_prob=self.keep_prob)
                     if(i == 0):
                         self.LConcat = L4
@@ -147,14 +147,14 @@ class Model:
                 b_ee1 = tf.Variable(tf.random_normal([self.hidden_neurons]))
                 L_ee1 = tf.matmul(self.X[:, num_one_joint_data*6:num_one_joint_data*6+time_step], W_ee1) + b_ee1
                 L_ee1 = tf.layers.batch_normalization(L_ee1, training=self.is_train)
-                L_ee1 = tf.nn.leaky_relu(L_ee1)
+                L_ee1 = tf.nn.relu(L_ee1)
                 L_ee1 = tf.nn.dropout(L_ee1, keep_prob=self.keep_prob)
 
                 W_ee2 = tf.get_variable("W_ee2", shape=[self.hidden_neurons, self.hidden_neurons], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
                 b_ee2 = tf.Variable(tf.random_normal([self.hidden_neurons]))
                 L_ee2 = tf.matmul(L_ee1, W_ee2) + b_ee2
                 L_ee2 = tf.layers.batch_normalization(L_ee2, training=self.is_train)
-                L_ee2 = tf.nn.leaky_relu(L_ee2)
+                L_ee2 = tf.nn.relu(L_ee2)
                 L_ee2 = tf.nn.dropout(L_ee2, keep_prob=self.keep_prob)
                 self.hidden_layers += 1
                 
@@ -162,15 +162,31 @@ class Model:
                 b_ee3 = tf.Variable(tf.random_normal([1]))
                 L_ee3 = tf.matmul(L_ee2, W_ee3) +b_ee3
                 L_ee3 = tf.layers.batch_normalization(L_ee3, training=self.is_train)
-                L_ee3 = tf.nn.leaky_relu(L_ee3)
+                L_ee3 = tf.nn.relu(L_ee3)
                 L_ee3 = tf.nn.dropout(L_ee3, keep_prob=self.keep_prob)
                 self.hidden_layers += 1
                 self.LConcat = tf.concat([self.LConcat, L_ee3],1)
 
             with tf.variable_scope("ConcatenateNet"):
-                W5 = tf.get_variable("W5", shape=[num_concatenate_node, num_output], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
-                b5 = tf.Variable(tf.random_normal([num_output]))
-                self.logits = tf.matmul(self.LConcat, W5) + b5
+                W5 = tf.get_variable("W5", shape=[num_concatenate_node, self.hidden_neurons], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
+                b5 = tf.Variable(tf.random_normal([self.hidden_neurons]))
+                L5 = tf.matmul(self.LConcat, W5) +b5
+                L5 = tf.layers.batch_normalization(L5, training=self.is_train)
+                L5 = tf.nn.relu(L5)
+                L5 = tf.nn.dropout(L5, keep_prob=self.keep_prob)
+                self.hidden_layers += 1
+
+                W6 = tf.get_variable("W6", shape=[self.hidden_neurons, self.hidden_neurons], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
+                b6 = tf.Variable(tf.random_normal([self.hidden_neurons]))
+                L6 = tf.matmul(L5, W6) +b6
+                L6 = tf.layers.batch_normalization(L6, training=self.is_train)
+                L6 = tf.nn.relu(L6)
+                L6 = tf.nn.dropout(L6, keep_prob=self.keep_prob)
+                self.hidden_layers += 1
+
+                W7 = tf.get_variable("W7", shape=[self.hidden_neurons, num_output], initializer=tf.contrib.layers.xavier_initializer(), regularizer=tf.contrib.layers.l2_regularizer(regul_factor))
+                b7 = tf.Variable(tf.random_normal([num_output]))
+                self.logits = tf.matmul(L6, W7) + b7
                 tf.identity(self.logits, "logits")
                 self.hypothesis = tf.nn.softmax(self.logits)
                 self.hypothesis = tf.identity(self.hypothesis, "hypothesis")
@@ -189,7 +205,7 @@ class Model:
         self.accuracy = tf.reduce_mean(tf.cast(self.correct_prediction, tf.float32))
 
     def get_mean_error_hypothesis(self, x_test, y_test, keep_prop=1.0, is_train=False):
-        return self.sess.run([self.accuracy,  self.l2_reg, self.cost], feed_dict={self.X: x_test, self.Y: y_test, self.keep_prob: keep_prop, self.is_train: is_train})
+        return self.sess.run([self.accuracy,  self.l2_reg, self.cost, self.hypothesis], feed_dict={self.X: x_test, self.Y: y_test, self.keep_prob: keep_prop, self.is_train: is_train})
 
     def train(self, x_data, y_data, keep_prop=1.0, is_train=True):
         return self.sess.run([self.accuracy, self.l2_reg, self.cost, self.optimizer], feed_dict={
@@ -225,22 +241,22 @@ if args.use_tf_record is True:
         }
         parsed_features = tf.parse_single_example(example_proto, features)
         return parsed_features['X'], parsed_features['y']
-    TrainData = tf.data.TFRecordDataset(["../data/TrainingData.tfrecord"])
-    TrainData = TrainData.shuffle(buffer_size=20*batch_size)
+    TrainData = tf.data.TFRecordDataset(["../data/TrainingDataFrontCut.tfrecord"])
+    TrainData = TrainData.shuffle(buffer_size=100*batch_size)
     TrainData = TrainData.map(parse_proto)
 
 else:
     # Load Training Data in Memory
-    TrainDataRaw = pd.read_csv('../data/TrainingData.csv').as_matrix().astype('float32')
-    TrainData = tf.data.Dataset.from_tensor_slices((TrainDataRaw[:,0:num_input], TrainDataRaw[:,-num_output:])) # You can use this when data size is not big. Then comment below 3 lines.
-    TrainData = TrainData.shuffle(buffer_size=20*batch_size)
+    TrainDataRaw = pd.read_csv('../data/TrainingDataFrontCut.csv').as_matrix().astype('float32')
+    TrainData = tf.data.Dataset.from_tensor_slices((TrainDataRaw[:,0:num_input], TrainDataRaw[:,-num_output:]))
+    TrainData = TrainData.shuffle(buffer_size=100*batch_size)
 TrainData = TrainData.batch(batch_size)
 TrainData = TrainData.prefetch(buffer_size=1)
 Trainiterator = TrainData.make_initializable_iterator()
 train_batch_x, train_batch_y = Trainiterator.get_next()
 
 # Load Validation Data in Memory
-ValidationData = pd.read_csv('../data/ValidationData.csv').as_matrix().astype('float32')
+ValidationData = pd.read_csv('../data/ValidationDataFrontCut.csv').as_matrix().astype('float32')
 X_validation = ValidationData[:,0:num_input]
 Y_validation = ValidationData[:,-num_output:]
 
@@ -287,7 +303,7 @@ for epoch in range(training_epochs):
         except tf.errors.OutOfRangeError:
             break
     # Validation Evaluation
-    accu_val, reg_val, cost_val = m1.get_mean_error_hypothesis(X_validation, Y_validation)
+    accu_val, reg_val, cost_val, _ = m1.get_mean_error_hypothesis(X_validation, Y_validation)
 
     print('Epoch:', '%04d' % (epoch + 1))
     print('Train Accuracy =', '{:.9f}'.format(accu_train))
@@ -329,9 +345,85 @@ if wandb_use == True:
 
 
 # Test Evaluation
-TestData = pd.read_csv('../data/TestingData.csv').as_matrix().astype('float32')
+TestData = pd.read_csv('../data/TestingDataCollision.csv').as_matrix().astype('float32')
 X_Test = TestData[:,0:num_input]
 Y_Test = TestData[:,-num_output:]
-accu_test, reg_test, cost_test  = m1.get_mean_error_hypothesis(X_Test, Y_Test)
+JTS = TestData[:,num_input]
+DOB = TestData[:,num_input+1]
+t = 0.001*range(len(X_Test))
+accu_test, reg_test, cost_test, hypo  = m1.get_mean_error_hypothesis(X_Test, Y_Test)
+prediction = np.argmax(hypo, 1)
 print('Test Accuracy: ', accu_test)
 print('Test Cost: ', cost_test)
+
+collision_pre = 0
+collision_cnt = 0
+collision_time = 0
+detection_time_NN = []
+detection_time_JTS = []
+detection_time_DoB = []
+collision_status = False
+NN_detection = False
+JTS_detection = False
+DoB_detection = False
+collision_fail_cnt_NN = 0
+collision_fail_cnt_JTS = 0
+collision_fail_cnt_DoB = 0
+
+for i in range(len(prediction)):
+    if (Y_Test[i] == 1 and collision_pre == 0):
+        collision_cnt = collision_cnt +1
+        collision_time = t[i]
+        collision_status = True
+        NN_detection = False
+        JTS_detection = False
+        DoB_detection = False
+    
+    if (collision_status == True and NN_detection == False):
+        if(prediction[i] == 1):
+            NN_detection = True
+            detection_time_NN[collision_cnt] = t[i] - collision_time
+
+    if (collision_status == True and JTS_detection == False):
+        if(JTS[i] == 1):
+            JTS_detection = True
+            detection_time_JTS[collision_cnt] = t[i] - collision_time
+    
+    if (collision_status == True and DoB_detection == False):
+        if(DoB[i] == 1):
+            DoB = True
+            detection_time_DoB[collision_cnt] = t[i] - collision_time
+
+    if (Y_Test[i] == 0 and collision_pre == 1):
+        collision_status = False
+        if(NN_detection == False):
+            detection_time_NN[collision_cnt] = 0.0
+            collision_fail_cnt_NN = collision_fail_cnt_NN+1
+        if(JTS_detection == False):
+            detection_time_JTS[collision_cnt] = 0.0
+            collision_fail_cnt_JTS = collision_fail_cnt_JTS+1
+        if(DoB_detection == False):
+            detection_time_DoB[collision_cnt] = 0.0
+            collision_fail_cnt_DoB = collision_fail_cnt_DoB+1
+    collision_pre = Y_Test[i]
+
+print('Total collision: ', collision_cnt)
+print('JTS Failure: ', collision_fail_cnt_JTS)
+print('NN Failure: ', collision_fail_cnt_NN)
+print('DOB Failure: ', collision_fail_cnt_DoB)
+print('JTS Detection Time: ', sum(detection_time_JTS)/(collision_cnt - collision_fail_cnt_JTS))
+print('NN Detection Time: ', sum(detection_time_NN)/(collision_cnt - collision_fail_cnt_NN))
+print('DOB Detection Time: ', sum(detection_time_DoB)/(collision_cnt - collision_fail_cnt_DoB))
+
+
+# Free motion Evaluation
+TestDataFree = pd.read_csv('../data/TestingDataFree.csv').as_matrix().astype('float32')
+X_TestFree = TestDataFree[:,0:num_input]
+Y_TestFree = TestDataFree[:,-num_output:]
+accu_test, reg_test, cost_test, hypo  = m1.get_mean_error_hypothesis(X_TestFree, Y_TestFree)
+prediction = np.argmax(hypo, 1)
+false_positive_local_arr = np.zeros((len(Y_TestFree),1))
+for j in range(len(false_positive_local_arr)):
+    false_positive_local_arr[j] = np.equal(prediction[j], 0) and np.equal(np.argmax(Y_TestFree[j,:]), 1)
+print('False Positive: ', sum(false_positive_local_arr))
+print('Total Num: ', len(Y_TestFree))

@@ -54,5 +54,11 @@ private:
 	void CalLayer4(float dInput[], float dOutput[]);
 	float m_dLayer4[7];
 
+	void CalLayer5(float dInput[], float dOutput[]);
+	float m_dLayer5[15];
+
+	void CalLayer6(float dInput[], float dOutput[]);
+	float m_dLayer6[15];
+
 	void CalOutput(float dInput[], float dOutput[]);
 };

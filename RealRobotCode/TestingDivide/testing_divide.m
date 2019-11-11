@@ -1,4 +1,4 @@
-fileName = strcat('TestingDataNocut','.csv');
+fileName = strcat('TestingDataRaw','.csv');
 TestingRaw = load(fileName);
 T= 100;
 for i=1:fix(size(TestingRaw,1)/T)
