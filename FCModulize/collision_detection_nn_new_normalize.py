@@ -46,7 +46,7 @@ if wandb_use == True:
 
 # Number of Input/Output Data
 time_step = 5
-num_data_type = 6
+num_data_type = 3
 num_one_joint_data = time_step * (num_data_type-1)
 num_joint = 6
 if args.use_ee_acc_data is False :
@@ -241,13 +241,13 @@ if args.use_tf_record is True:
         }
         parsed_features = tf.parse_single_example(example_proto, features)
         return parsed_features['X'], parsed_features['y']
-    TrainData = tf.data.TFRecordDataset(["../data/TrainingDataFrontCut.tfrecord"])
+    TrainData = tf.data.TFRecordDataset(["../data/TrainingData1.tfrecord"])
     TrainData = TrainData.shuffle(buffer_size=100*batch_size)
     TrainData = TrainData.map(parse_proto)
 
 else:
     # Load Training Data in Memory
-    TrainDataRaw = pd.read_csv('../data/TrainingDataFrontCut.csv').as_matrix().astype('float32')
+    TrainDataRaw = pd.read_csv('../data/TrainingData1.csv').as_matrix().astype('float32')
     TrainData = tf.data.Dataset.from_tensor_slices((TrainDataRaw[:,0:num_input], TrainDataRaw[:,-num_output:]))
     TrainData = TrainData.shuffle(buffer_size=100*batch_size)
 TrainData = TrainData.batch(batch_size)
@@ -256,7 +256,7 @@ Trainiterator = TrainData.make_initializable_iterator()
 train_batch_x, train_batch_y = Trainiterator.get_next()
 
 # Load Validation Data in Memory
-ValidationData = pd.read_csv('../data/ValidationDataFrontCut.csv').as_matrix().astype('float32')
+ValidationData = pd.read_csv('../data/ValidationData1.csv').as_matrix().astype('float32')
 X_validation = ValidationData[:,0:num_input]
 Y_validation = ValidationData[:,-num_output:]
 
@@ -345,14 +345,14 @@ if wandb_use == True:
 
 
 # Test Evaluation
-TestData = pd.read_csv('../data/TestingDataCollision.csv').as_matrix().astype('float32')
+TestData = pd.read_csv('../data/TestingDataCollision1.csv').as_matrix().astype('float32')
 X_Test = TestData[:,0:num_input]
 Y_Test = TestData[:,-num_output:]
 JTS = TestData[:,num_input]
 DOB = TestData[:,num_input+1]
-t = 0.001*range(len(X_Test))
 accu_test, reg_test, cost_test, hypo  = m1.get_mean_error_hypothesis(X_Test, Y_Test)
 prediction = np.argmax(hypo, 1)
+t = np.arange(0,0.001*len(prediction),0.001)
 print('Test Accuracy: ', accu_test)
 print('Test Cost: ', cost_test)
 
@@ -371,7 +371,7 @@ collision_fail_cnt_JTS = 0
 collision_fail_cnt_DoB = 0
 
 for i in range(len(prediction)):
-    if (Y_Test[i] == 1 and collision_pre == 0):
+    if (Y_Test[i,0] == 1 and collision_pre == 0):
         collision_cnt = collision_cnt +1
         collision_time = t[i]
         collision_status = True
@@ -382,30 +382,30 @@ for i in range(len(prediction)):
     if (collision_status == True and NN_detection == False):
         if(prediction[i] == 1):
             NN_detection = True
-            detection_time_NN[collision_cnt] = t[i] - collision_time
+            detection_time_NN.append(t[i] - collision_time)
 
     if (collision_status == True and JTS_detection == False):
         if(JTS[i] == 1):
             JTS_detection = True
-            detection_time_JTS[collision_cnt] = t[i] - collision_time
+            detection_time_JTS.append(t[i] - collision_time)
     
     if (collision_status == True and DoB_detection == False):
-        if(DoB[i] == 1):
-            DoB = True
-            detection_time_DoB[collision_cnt] = t[i] - collision_time
+        if(DOB[i] == 1):
+            DoB_detection = True
+            detection_time_DoB.append(t[i] - collision_time)
 
-    if (Y_Test[i] == 0 and collision_pre == 1):
+    if (Y_Test[i,0] == 0 and collision_pre == 1):
         collision_status = False
         if(NN_detection == False):
-            detection_time_NN[collision_cnt] = 0.0
+            detection_time_NN.append(0.0)
             collision_fail_cnt_NN = collision_fail_cnt_NN+1
         if(JTS_detection == False):
-            detection_time_JTS[collision_cnt] = 0.0
+            detection_time_JTS.append(0.0)
             collision_fail_cnt_JTS = collision_fail_cnt_JTS+1
         if(DoB_detection == False):
-            detection_time_DoB[collision_cnt] = 0.0
+            detection_time_DoB.append(0.0)
             collision_fail_cnt_DoB = collision_fail_cnt_DoB+1
-    collision_pre = Y_Test[i]
+    collision_pre = Y_Test[i,0]
 
 print('Total collision: ', collision_cnt)
 print('JTS Failure: ', collision_fail_cnt_JTS)
@@ -417,7 +417,7 @@ print('DOB Detection Time: ', sum(detection_time_DoB)/(collision_cnt - collision
 
 
 # Free motion Evaluation
-TestDataFree = pd.read_csv('../data/TestingDataFree.csv').as_matrix().astype('float32')
+TestDataFree = pd.read_csv('../data/TestingDataFree1.csv').as_matrix().astype('float32')
 X_TestFree = TestDataFree[:,0:num_input]
 Y_TestFree = TestDataFree[:,-num_output:]
 accu_test, reg_test, cost_test, hypo  = m1.get_mean_error_hypothesis(X_TestFree, Y_TestFree)
